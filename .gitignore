@@ -1,0 +1,22 @@
+# Rust
+core/target/
+**/*.rs.bk
+
+# Flutter / Dart
+ui/.dart_tool/
+ui/.flutter-plugins
+ui/.flutter-plugins-dependencies
+ui/build/
+ui/.pub-cache/
+ui/.pub/
+ui/android/.gradle/
+ui/ios/Pods/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# Logs
+*.log

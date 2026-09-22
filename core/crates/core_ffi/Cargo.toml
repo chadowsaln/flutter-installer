@@ -1,0 +1,12 @@
+[package]
+name = "flutter_core"
+version = "0.1.0"
+edition = "2021"
+description = "Flutter Installer core, exposed as a C ABI for embedding via dart:ffi"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+core = { path = "../core" }
+serde_json = "1"
