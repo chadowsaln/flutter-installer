@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
 import '../state/app_scope.dart';
+import '../widgets/adaptive_layout.dart';
 import '../widgets/log_view.dart';
 import '../widgets/sections.dart';
 
@@ -95,10 +96,8 @@ class _DartManagerScreenState extends State<DartManagerScreen> {
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
     final sdks = app.dartSdks;
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: ListView(
-        children: [
+    return AdaptiveScreenBody(
+      children: [
           const Text('Dart Manager',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
@@ -218,8 +217,7 @@ class _DartManagerScreenState extends State<DartManagerScreen> {
                 child: LogView(lines: app.logBuffer),
               ),
             ),
-        ],
-      ),
+      ],
     );
   }
 }

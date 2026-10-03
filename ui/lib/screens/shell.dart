@@ -1,17 +1,26 @@
 import 'package:flutter/material.dart';
 
+import '../services/install_detector.dart';
 import '../state/app_state.dart';
 import '../state/app_scope.dart';
+import '../widgets/adaptive_layout.dart';
 import 'dart_manager_screen.dart';
 import 'flutter_manager_screen.dart';
 import 'install_wizard_screen.dart';
+import 'instant_setup_screen.dart';
 import 'path_manager_screen.dart';
 import 'process_screen.dart';
 import 'sdk_manager_screen.dart';
 import 'system_screen.dart';
 
-/// Desktop shell: a navigation rail on the left, a page on the right, and a
-/// collapsible diagnostics drawer showing the daemon log.
+/// Desktop shell: adapts to the available app window width.
+///
+/// - Wide windows (`maxWidth > [largeScreenMinWidth]`): a navigation rail on
+///   the left, the page on the right, and the diagnostics log as an end
+///   drawer.
+/// - Narrow windows: a standard navigation drawer + app bar, with the same
+///   pages in an [IndexedStack]. Base the decision strictly on window space
+///   via [LayoutBuilder] — never on orientation or hardware type.
 class Shell extends StatefulWidget {
   const Shell({super.key});
 
@@ -21,9 +30,11 @@ class Shell extends StatefulWidget {
 
 class _ShellState extends State<Shell> {
   late final AppState _state = AppState();
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
   int _index = 0;
 
   static const _pages = [
+    InstantSetupScreen(),
     InstallWizardScreen(),
     SdkManagerScreen(),
     FlutterManagerScreen(),
@@ -39,6 +50,20 @@ class _ShellState extends State<Shell> {
     super.dispose();
   }
 
+  void _select(int i) {
+    setState(() => _index = i);
+    // Close the navigation drawer on small screens after a selection.
+    if ((_scaffoldKey.currentContext == null) ||
+        MediaQuery.sizeOf(_scaffoldKey.currentContext!).width <=
+            largeScreenMinWidth) {
+      _scaffoldKey.currentState?.closeDrawer();
+    }
+  }
+
+  void _toggleLog() {
+    _scaffoldKey.currentState?.openEndDrawer();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_state.starting) {
@@ -48,38 +73,119 @@ class _ShellState extends State<Shell> {
     }
     return AppScope(
       state: _state,
-      child: Builder(
-        builder: (context) {
-          return Scaffold(
-            body: Row(
-              children: [
-                _Rail(
-                  index: _index,
-                  onSelect: (i) => setState(() => _index = i),
-                ),
-                Expanded(
-                  child: Column(
-                    children: [
-                      _StatusBanner(onViewLog: _toggleLog),
-                      Expanded(
-                        child: IndexedStack(index: _index, children: _pages),
-                      ),
-                    ],
-                  ),
-                ),
-                _LogDrawer(appState: _state),
-              ],
-            ),
-          );
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isLarge = constraints.maxWidth > largeScreenMinWidth;
+          if (isLarge) {
+            return _buildLargeScreenLayout();
+          } else {
+            return _buildSmallScreenLayout();
+          }
         },
       ),
     );
   }
 
-  void _toggleLog() {
-    Scaffold.of(context).openEndDrawer();
+  Widget _buildLargeScreenLayout() {
+    return Scaffold(
+      key: _scaffoldKey,
+      endDrawer: _LogDrawer(appState: _state),
+      body: Row(
+        children: [
+          _Rail(
+            index: _index,
+            onSelect: _select,
+          ),
+          const VerticalDivider(width: 1),
+          Expanded(
+            child: Column(
+              children: [
+                _StatusBanner(onViewLog: _toggleLog),
+                Expanded(
+                  child: IndexedStack(index: _index, children: _pages),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSmallScreenLayout() {
+    return Scaffold(
+      key: _scaffoldKey,
+      appBar: AppBar(
+        title: Text(_labels[_index]),
+      ),
+      drawer: Drawer(
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 20, 16, 16),
+                child: Row(
+                  children: [
+                    Icon(Icons.flutter_dash,
+                        color: Color(0xFF45D1FD), size: 28),
+                    SizedBox(width: 8),
+                    Text('Flutter Installer',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 15)),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: _labels.length,
+                  itemBuilder: (context, i) => _NavItem(
+                    icon: _icons[i],
+                    label: _labels[i],
+                    selected: i == _index,
+                    onTap: () => _select(i),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      endDrawer: _LogDrawer(appState: _state),
+      body: Column(
+        children: [
+          _StatusBanner(onViewLog: _toggleLog),
+          Expanded(
+            child: IndexedStack(index: _index, children: _pages),
+          ),
+        ],
+      ),
+    );
   }
 }
+
+const _icons = [
+  Icons.bolt,
+  Icons.rocket_launch,
+  Icons.inventory_2,
+  Icons.flutter_dash,
+  Icons.code,
+  Icons.route,
+  Icons.memory,
+  Icons.health_and_safety,
+];
+
+const _labels = [
+  'Instant Setup',
+  'Installer',
+  'SDK Manager',
+  'Flutter',
+  'Dart',
+  'PATH',
+  'Processes',
+  'System',
+];
 
 class _Rail extends StatelessWidget {
   const _Rail({required this.index, required this.onSelect});
@@ -87,30 +193,10 @@ class _Rail extends StatelessWidget {
   final int index;
   final ValueChanged<int> onSelect;
 
-  static const _icons = [
-    Icons.rocket_launch,
-    Icons.inventory_2,
-    Icons.flutter_dash,
-    Icons.code,
-    Icons.route,
-    Icons.memory,
-    Icons.health_and_safety,
-  ];
-
-  static const _labels = [
-    'Installer',
-    'SDK Manager',
-    'Flutter',
-    'Dart',
-    'PATH',
-    'Processes',
-    'System',
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 184,
+      width: 200,
       color: const Color(0xFF0B131F),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -121,20 +207,26 @@ class _Rail extends StatelessWidget {
               children: [
                 Icon(Icons.flutter_dash, color: Color(0xFF45D1FD), size: 28),
                 SizedBox(width: 8),
-                Text('Flutter Installer',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                Flexible(
+                  child: Text('Flutter Installer',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                ),
               ],
             ),
           ),
           const Divider(height: 1),
-          for (var i = 0; i < _labels.length; i++)
-            _NavItem(
-              icon: _icons[i],
-              label: _labels[i],
-              selected: i == index,
-              onTap: () => onSelect(i),
+          Expanded(
+            child: ListView.builder(
+              itemCount: _labels.length,
+              itemBuilder: (context, i) => _NavItem(
+                icon: _icons[i],
+                label: _labels[i],
+                selected: i == index,
+                onTap: () => onSelect(i),
+              ),
             ),
-          const Spacer(),
+          ),
           Padding(
             padding: const EdgeInsets.all(12),
             child: Text(
@@ -179,7 +271,7 @@ class _NavItem extends StatelessWidget {
           children: [
             Icon(icon, size: 20, color: selected ? scheme.primary : null),
             const SizedBox(width: 10),
-            Text(label, style: const TextStyle(fontSize: 13.5)),
+            Expanded(child: Text(label, style: const TextStyle(fontSize: 13.5))),
           ],
         ),
       ),
@@ -195,31 +287,31 @@ class _StatusBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
-    final connected = state.hasConnection;
-    final color = connected ? const Color(0xFF2BD576) : const Color(0xFFE5533D);
+    const color = Color(0xFF2BD576);
     return Container(
       color: const Color(0xFF0B131F),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          Icon(Icons.circle, size: 10, color: color),
+          const Icon(Icons.circle, size: 10, color: color),
           const SizedBox(width: 8),
-Text(
-              connected
-                  ? 'Core connected: ${state.client?.daemonPath.split('/').last ?? 'core'}'
-                  : state.starting
-                      ? 'Starting core...'
-                      : 'Core NOT connected — build the Rust core (see README)',
+          Expanded(
+            child: Text(
+              'وضع محلي: ${state.backendLabel} — كشف النظام وتنزيل عبر الأوامر',
               style: Theme.of(context).textTheme.bodySmall,
+              overflow: TextOverflow.ellipsis,
             ),
-          const Spacer(),
+          ),
+          // شارة التثبيت: هل Flutter موجود على هذا الجهاز وأي إصدار؟
+          _InstallBadge(state: state),
           if (state.activeTask != null)
             Flexible(
               child: Text(state.activeTask!,
-                  style: const TextStyle(color: Color(0xFF45D1FD), fontSize: 12)),
+                  style: const TextStyle(color: Color(0xFF45D1FD), fontSize: 12),
+                  overflow: TextOverflow.ellipsis),
             ),
           IconButton(
-            tooltip: 'Open daemon log',
+            tooltip: 'Open log',
             onPressed: onViewLog,
             icon: const Icon(Icons.terminal, size: 18),
           ),
@@ -229,7 +321,45 @@ Text(
   }
 }
 
-/// A slim end drawer showing the last daemon/install log lines.
+/// شارة صغيرة تعرض حالة تثبيت Flutter الفعلية على هذا الجهاز.
+class _InstallBadge extends StatelessWidget {
+  const _InstallBadge({required this.state});
+
+  final AppState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = state.detection;
+    final (Color color, IconData icon) = switch (d.state) {
+      InstallState.notInstalled => (const Color(0xFFFFB020), Icons.error_outline),
+      InstallState.outdated => (const Color(0xFFFFB020), Icons.update),
+      InstallState.upToDate => (const Color(0xFF2BD576), Icons.check_circle),
+      InstallState.newer => (const Color(0xFF45D1FD), Icons.new_releases),
+    };
+    return Container(
+      margin: const EdgeInsets.only(left: 10, right: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.6)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 5),
+          Text(
+            state.installedBadge,
+            style: TextStyle(fontSize: 11, color: color),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A slim end drawer showing the last command/install log lines.
 class _LogDrawer extends StatelessWidget {
   const _LogDrawer({required this.appState});
 
@@ -249,7 +379,7 @@ class _LogDrawer extends StatelessWidget {
               padding: const EdgeInsets.all(14),
               child: Row(
                 children: [
-                  const Text('Daemon log',
+                  const Text('سجل الأوامر',
                       style: TextStyle(fontWeight: FontWeight.bold)),
                   const Spacer(),
                   IconButton(

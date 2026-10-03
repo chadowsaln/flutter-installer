@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
 import '../state/app_scope.dart';
+import '../widgets/adaptive_layout.dart';
 import '../widgets/sections.dart';
 
 /// PATH Manager: inspect the current PATH, the shell profiles the core knows
@@ -79,10 +80,8 @@ class _PathManagerScreenState extends State<PathManagerScreen> {
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
     final profiles = app.pathProfiles;
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: ListView(
-        children: [
+    return AdaptiveScreenBody(
+      children: [
           Row(
             children: [
               const Text('PATH Manager',
@@ -104,19 +103,17 @@ class _PathManagerScreenState extends State<PathManagerScreen> {
             title: 'Add a bin directory to PATH',
             child: Column(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _entryController,
-                        decoration: const InputDecoration(
-                          labelText: 'bin path',
-                          hintText: '/home/you/development/flutter/bin',
-                        ),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final narrow = constraints.maxWidth < 480;
+                    final field = TextField(
+                      controller: _entryController,
+                      decoration: const InputDecoration(
+                        labelText: 'bin path',
+                        hintText: '/home/you/development/flutter/bin',
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    DropdownButton<String>(
+                    );
+                    final profilePicker = DropdownButton<String>(
                       value: _selectedProfile,
                       hint: const Text('auto profile'),
                       items: [
@@ -126,20 +123,43 @@ class _PathManagerScreenState extends State<PathManagerScreen> {
                           DropdownMenuItem(
                             value: p['path'] as String?,
                             child: Text(
-                              p['path']!.split('/').last,
+                              (p['path'] as String).split('/').last,
                               style: const TextStyle(fontSize: 12),
                             ),
                           ),
                       ],
                       onChanged: (v) => setState(() => _selectedProfile = v),
-                    ),
-                    const SizedBox(width: 10),
-                    FilledButton.icon(
+                    );
+                    final addButton = FilledButton.icon(
                       onPressed: _busy ? null : () => _ensure(app),
                       icon: const Icon(Icons.add),
                       label: const Text('Add'),
-                    ),
-                  ],
+                    );
+                    if (narrow) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          field,
+                          const SizedBox(height: 10),
+                          profilePicker,
+                          const SizedBox(height: 10),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: addButton,
+                          ),
+                        ],
+                      );
+                    }
+                    return Row(
+                      children: [
+                        Expanded(child: field),
+                        const SizedBox(width: 10),
+                        profilePicker,
+                        const SizedBox(width: 10),
+                        addButton,
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -158,28 +178,30 @@ class _PathManagerScreenState extends State<PathManagerScreen> {
             child: app.pathEntries.isEmpty
                 ? const Text('PATH is empty — unusual!',
                     style: TextStyle(color: Colors.white54))
-                : Column(
-                    children: [
-                      for (final e in app.pathEntries)
-                        ListTile(
-                          dense: true,
-                          contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.folder, size: 18),
-                          title: Text(e['entry']?.toString() ?? e.toString(),
-                              style: const TextStyle(fontSize: 12.5)),
-                          trailing: IconButton(
-                            tooltip: 'Remove from profiles',
-                            icon: const Icon(Icons.remove_circle_outline,
-                                size: 18),
-                            onPressed: () =>
-                                _remove(app, e['entry']?.toString() ?? ''),
-                          ),
+                : ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: app.pathEntries.length,
+                    itemBuilder: (context, index) {
+                      final e = app.pathEntries[index];
+                      return ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.folder, size: 18),
+                        title: Text(e['entry']?.toString() ?? e.toString(),
+                            style: const TextStyle(fontSize: 12.5)),
+                        trailing: IconButton(
+                          tooltip: 'Remove from profiles',
+                          icon: const Icon(Icons.remove_circle_outline,
+                              size: 18),
+                          onPressed: () =>
+                              _remove(app, e['entry']?.toString() ?? ''),
                         ),
-                    ],
+                      );
+                    },
                   ),
           ),
-        ],
-      ),
+      ],
     );
   }
 }

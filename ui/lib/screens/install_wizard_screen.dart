@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
 import '../state/app_scope.dart';
+import '../widgets/adaptive_layout.dart';
 import '../widgets/log_view.dart';
 import '../widgets/sections.dart';
 
@@ -89,10 +90,8 @@ class _InstallWizardScreenState extends State<InstallWizardScreen> {
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
     final progress = app.downloadProgress;
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: ListView(
-        children: [
+    return AdaptiveScreenBody(
+      children: [
           const Text('Flutter SDK Installer',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
           const SizedBox(height: 6),
@@ -285,8 +284,7 @@ class _InstallWizardScreenState extends State<InstallWizardScreen> {
               ],
             ),
           ),
-        ],
-      ),
+      ],
     );
   }
 }

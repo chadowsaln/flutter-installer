@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../state/app_scope.dart';
+import '../widgets/adaptive_layout.dart';
 import '../widgets/sections.dart';
 
 /// SDK Manager: overview of every Flutter and Dart SDK the core has found,
@@ -24,10 +25,8 @@ class _SdkManagerScreenState extends State<SdkManagerScreen> {
   @override
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: ListView(
-        children: [
+    return AdaptiveScreenBody(
+      children: [
           Row(
             children: [
               const Text('SDK Manager',
@@ -44,21 +43,17 @@ class _SdkManagerScreenState extends State<SdkManagerScreen> {
 
           SectionCard(
             title: 'Available now',
-            child: Row(
+            child: AdaptiveRowOrColumn(
               children: [
-                Expanded(
-                  child: _Stat(
-                    label: 'Latest Flutter',
-                    value: app.flutterLatestVersion,
-                    icon: Icons.flutter_dash,
-                  ),
+                _Stat(
+                  label: 'Latest Flutter',
+                  value: app.flutterLatestVersion,
+                  icon: Icons.flutter_dash,
                 ),
-                Expanded(
-                  child: _Stat(
-                    label: 'Latest Dart',
-                    value: app.dartLatestVersion,
-                    icon: Icons.code,
-                  ),
+                _Stat(
+                  label: 'Latest Dart',
+                  value: app.dartLatestVersion,
+                  icon: Icons.code,
                 ),
               ],
             ),
@@ -119,8 +114,7 @@ class _SdkManagerScreenState extends State<SdkManagerScreen> {
               ],
             ),
           ),
-        ],
-      ),
+      ],
     );
   }
 

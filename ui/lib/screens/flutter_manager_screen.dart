@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
 import '../state/app_scope.dart';
+import '../widgets/adaptive_layout.dart';
 import '../widgets/sections.dart';
 
 /// Flutter Manager: every installed Flutter SDK, its PATH status, and
@@ -73,10 +74,8 @@ class _FlutterManagerScreenState extends State<FlutterManagerScreen> {
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
     final sdks = app.flutterSdks;
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: ListView(
-        children: [
+    return AdaptiveScreenBody(
+      children: [
           Row(
             children: [
               const Text('Flutter Manager',
@@ -150,8 +149,7 @@ class _FlutterManagerScreenState extends State<FlutterManagerScreen> {
                   ),
                 ),
               ),
-        ],
-      ),
+      ],
     );
   }
 }

@@ -20,3 +20,6 @@ ui/ios/Pods/
 
 # Logs
 *.log
+
+# Build artifacts
+dist/

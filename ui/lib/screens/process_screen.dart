@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
 import '../state/app_scope.dart';
+import '../widgets/adaptive_layout.dart';
 import '../widgets/log_view.dart';
 import '../widgets/sections.dart';
 
@@ -139,10 +140,8 @@ class _ProcessScreenState extends State<ProcessScreen> {
   @override
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: ListView(
-        children: [
+    return AdaptiveScreenBody(
+      children: [
           const Text('Process Manager',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
@@ -192,25 +191,43 @@ class _ProcessScreenState extends State<ProcessScreen> {
 
           SectionCard(
             title: 'One-shot exec',
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _execController,
-                    decoration: const InputDecoration(
-                      labelText: 'Command',
-                      hintText: 'echo hello world',
-                    ),
-                    onSubmitted: (_) => _exec(app),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final narrow = constraints.maxWidth < 480;
+                final field = TextField(
+                  controller: _execController,
+                  decoration: const InputDecoration(
+                    labelText: 'Command',
+                    hintText: 'echo hello world',
                   ),
-                ),
-                const SizedBox(width: 10),
-                OutlinedButton.icon(
+                  onSubmitted: (_) => _exec(app),
+                );
+                final runButton = OutlinedButton.icon(
                   onPressed: _busy ? null : () => _exec(app),
                   icon: const Icon(Icons.terminal),
                   label: const Text('Run & show output'),
-                ),
-              ],
+                );
+                if (narrow) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      field,
+                      const SizedBox(height: 10),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: runButton,
+                      ),
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    Expanded(child: field),
+                    const SizedBox(width: 10),
+                    runButton,
+                  ],
+                );
+              },
             ),
           ),
 
@@ -224,28 +241,31 @@ class _ProcessScreenState extends State<ProcessScreen> {
             child: app.processes.isEmpty
                 ? const Text('No managed processes running.',
                     style: TextStyle(color: Colors.white54))
-                : Column(
-                    children: [
-                      for (final p in app.processes)
-                        ListTile(
-                          dense: true,
-                          contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.settings_input_component,
-                              size: 18),
-                          title: Text(
-                            '${p['exe']}',
-                            style: const TextStyle(fontSize: 13),
-                          ),
-                          subtitle: Text('pid ${p['pid']}',
-                              style: const TextStyle(fontSize: 11)),
-                          trailing: IconButton(
-                            tooltip: 'Terminate',
-                            icon: const Icon(Icons.stop_circle_outlined,
-                                size: 20),
-                            onPressed: () => _terminate(app, p['pid'] as int),
-                          ),
+                : ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: app.processes.length,
+                    itemBuilder: (context, index) {
+                      final p = app.processes[index];
+                      return ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.settings_input_component,
+                            size: 18),
+                        title: Text(
+                          '${p['exe']}',
+                          style: const TextStyle(fontSize: 13),
                         ),
-                    ],
+                        subtitle: Text('pid ${p['pid']}',
+                            style: const TextStyle(fontSize: 11)),
+                        trailing: IconButton(
+                          tooltip: 'Terminate',
+                          icon: const Icon(Icons.stop_circle_outlined,
+                              size: 20),
+                          onPressed: () => _terminate(app, p['pid'] as int),
+                        ),
+                      );
+                    },
                   ),
           ),
 
@@ -257,8 +277,7 @@ class _ProcessScreenState extends State<ProcessScreen> {
                 child: LogView(lines: app.logBuffer),
               ),
             ),
-        ],
-      ),
+      ],
     );
   }
 }
