@@ -1,0 +1,12 @@
+Package: flutter-installer
+Version: 0.1.0
+Section: devel
+Priority: optional
+Architecture: amd64
+Depends: libgtk-3-0
+Maintainer: shadow <shadow@localhost>
+Description: Desktop app to download and manage Flutter and Dart SDKs
+ A self-contained desktop app (Flutter/Dart, no backend) that downloads,
+ extracts, and manages Flutter and Dart SDKs using only system commands.
+ Features an Instant Setup wizard, in-place git-based SDK updates,
+ PATH/profile management, and process supervision.

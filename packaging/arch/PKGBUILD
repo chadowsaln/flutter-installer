@@ -1,0 +1,25 @@
+# Maintainer: shadow <shadow@localhost>
+pkgname=flutter-installer
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Desktop app to download and manage Flutter and Dart SDKs"
+arch=('x86_64')
+url="https://github.com/chadowsaln/flutter-installer"
+license=('MIT')
+depends=('gtk3')
+options=('!strip' '!emptydirs')
+source=("flutter-installer-${pkgver}.tar.gz::https://github.com/chadowsaln/flutter-installer/releases/download/v${pkgver}/flutter-installer-${pkgver}.tar.gz")
+sha256sums=('SKIP')
+
+package() {
+    install -d "${pkgdir}/opt/${pkgname}"
+    cp -a "${srcdir}/${pkgname}-${pkgver}/." "${pkgdir}/opt/${pkgname}/"
+    install -d "${pkgdir}/usr/bin"
+    ln -sfn "../../opt/${pkgname}/flutter_installer_ui" "${pkgdir}/usr/bin/flutter-installer"
+    install -Dm644 "${srcdir}/${pkgname}-${pkgver}/flutter-installer.desktop" \
+        "${pkgdir}/usr/share/applications/flutter-installer.desktop"
+    install -Dm644 "${srcdir}/${pkgname}-${pkgver}/flutter-installer.png" \
+        "${pkgdir}/usr/share/icons/hicolor/192x192/apps/flutter-installer.png"
+    install -Dm644 "${srcdir}/${pkgname}-${pkgver}/LICENSE" \
+        "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}

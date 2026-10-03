@@ -1,0 +1,14 @@
+pkgbase = flutter-installer
+	pkgdesc = Desktop app to download and manage Flutter and Dart SDKs
+	pkgver = 0.1.0
+	pkgrel = 1
+	url = https://github.com/chadowsaln/flutter-installer
+	arch = x86_64
+	license = MIT
+	depends = gtk3
+	options = !strip
+	options = !emptydirs
+	source = flutter-installer-0.1.0.tar.gz::https://github.com/chadowsaln/flutter-installer/releases/download/v0.1.0/flutter-installer-0.1.0.tar.gz
+	sha256sums = SKIP
+
+pkgname = flutter-installer

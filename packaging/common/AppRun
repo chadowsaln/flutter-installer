@@ -1,0 +1,6 @@
+#!/bin/sh
+# AppImage entrypoint — resolves its own real path so it works whether it is
+# executed as ./AppRun inside the AppDir or through the AppImage mount.
+HERE="$(dirname "$(readlink -f "${0}")")"
+export LD_LIBRARY_PATH="$HERE/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+exec "$HERE/flutter_installer_ui" "$@"

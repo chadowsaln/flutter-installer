@@ -1,62 +1,60 @@
 # Flutter Installer
 
-A self-contained desktop application that downloads and manages the Flutter and
-Dart SDKs. **It runs as one single process — no daemon, no server.** The Rust
-core is compiled into a shared library (`libflutter_core.so`) and loaded
-directly into the app via `dart:ffi`.
+تطبيق سطح مكتب مكتفٍ ذاتياً لتنزيل وإدارة Flutter و Dart SDKs.
+**بدون أي باك إند — لا Rust ولا سيرفر ولا daemon.** كل شيء بـ Dart وأوامر
+النظام مباشرة: كشف النظام عبر `Platform`، التنزيل عبر `HttpClient`، الفك عبر
+`tar`/`unzip`، والـ PATH عبر متغيرات البيئة (`export` في البروفايل أو `setx`).
 
 ```
-Flutter Installer
-├── Flutter Desktop UI          (ui/ — Flutter app: Linux / Windows / macOS)
-└── Tauri / Rust Core           (core/ — Rust workspace)
-    ├── SDK Manager             sdk.rs    – orchestration of Flutter + Dart installs
-    ├── Dart Manager            dart.rs   – standalone Dart SDK install / list
-    ├── Flutter Manager         flutter.rs – Flutter SDK install / list / resolve
-    ├── PATH Manager            path.rs   – shell-profile PATH manipulation
-    ├── Process Manager         process.rs – spawn / stream / terminate sub-processes
-    └── System Checker          system.rs  – OS, arch, prerequisites, network checks
+Flutter Installer (Dart فقط — بدون باك إند)
+└── Flutter Desktop UI          (ui/ — Flutter app: Linux / Windows / macOS)
+    ├── services/platform.dart  – كشف النظام: linux/macos/windows + arch عبر uname
+    ├── services/downloader.dart – تنزيل HttpClient + فك عبر tar/unzip (أوامر نظام)
+    ├── services/flutter_service – resolve من release feed + install/list/uninstall
+    ├── services/dart_service    – install/list/uninstall لـ Dart SDK
+    ├── services/path_service    – PATH من Environment + export/setx عبر الأوامر
+    ├── services/process_service – spawn/exec/terminate عبر Process
+    └── services/system_service  – فحص المتطلبات عبر which/where
 ```
 
 ## Architecture
 
 ```
-Flutter app (single process, no server)
+Flutter app (single process, no backend)
 ┌─────────────────────────────────────────────────────┐
-│ Flutter UI (Dart)            dart:ffi      Rust core │
-│  screens / AppState  ◀────┼────▶  libflutter_core.so │
-│  CoreClient (JSON-RPC) ◀──┤──▶  ffi_core_call/poll   │
-│  poll timer (~20ms)    ◀──┤──▶  shared output queue  │
-│  download + PATH +      ────                       │
-│  process management        (all inside this process)│
+│ Flutter UI (Dart)                                   │
+│  screens / AppState  ──▶  services/*.dart           │
+│  rpc(method)          ──▶  Platform + Process.run    │
+│  downloadProgress/log ──▶  HttpClient + tar/unzip    │
+│  PATH                 ──▶  Environment + export/setx │
 └─────────────────────────────────────────────────────┘
 ```
 
-* The Rust `cdylib` exposes a tiny C ABI (`core/crates/core_ffi`):
-  `ffi_core_new`, `ffi_core_call(method, params, id)`, `ffi_core_poll`,
-  `ffi_core_free_string`, `ffi_core_destroy`.
-* Each request runs on its own Rust thread, so long downloads never block the
-  UI; responses and notifications (`progress`, `log`, `task.*`, `process.*`)
-  flow through one shared queue that the UI drains on a ~20 ms timer.
-* No ports, no sockets, no child processes: the download still happens directly
-  from Flutter's official servers (`storage.googleapis.com`), as before.
+* لا منافذ ولا سوكيتات ولا عمليات خلفية: التنزيل مباشرة من سيرفرات Flutter
+  الرسمية (`storage.googleapis.com`).
+* مجلد `core/` (Rust) موجود كمرجع تاريخي فقط وغير مطلوب لبناء أو تشغيل التطبيق.
 
-## Quick start
+## Quick start — بدون بناء أي باك إند
 
 ```bash
-# 1. Build the Rust core shared library (release for the app, debug for dev)
-cargo build --manifest-path core/Cargo.toml --release
-
-# 2. Run the Flutter app — it loads libflutter_core.so in-process
 cd ui
 flutter run -d linux
 ```
 
-The app looks for the library in this order: `CORE_FFI` env override →
-`../core/target/{release,debug}/` → bundled beside the executable.
+لا حاجة لـ `cargo build` ولا `CORE_FFI` ولا binary جانبي.
 
-**Fallback:** if the library is missing, the app falls back to the `daemon`
-sidecar binary (`cargo build --release` in `core/`) so the debugging/CLI flow
-keeps working without a rebuild.
+## الحزم والتنزيلات
+
+مُغلف لكل التوزيعات من أمر واحد — `./packaging/build-packages.sh`:
+
+| النظام | الحزمة | التثبيت |
+|--------|--------|---------|
+| Fedora / RHEL | `flutter-installer-*.rpm` | `sudo rpm -ivh …` |
+| Debian / Ubuntu | `flutter-installer_*_amd64.deb` | `sudo apt install ./…` |
+| أي لينكس | `flutter-installer-x86_64.AppImage` | `chmod +x && ./…` |
+| Arch / AUR | `PKGBUILD` + `.SRCINFO` | `makepkg -si` |
+
+التفاصيل الكاملة في [packaging/PACKAGING.md](packaging/PACKAGING.md).
 
 ## Screens
 
@@ -82,21 +80,11 @@ keeps working without a rebuild.
 ## Development
 
 ```bash
-cd core && cargo build && cargo clippy        # core + daemon + core_ffi
-cd ui    && flutter analyze && flutter test    # UI + FFI round-trip tests
+cd ui && flutter analyze && flutter test    # UI + local backend tests
 ```
 
-The `flutter test` suite drives the real in-process FFI bridge end-to-end
-(ping, system info, sdk.known, notification stream).
-
-### Using the daemon directly (CLI / debugging)
-
-The same core also ships as a stdio JSON-RPC binary under `core/crates/daemon`;
-each request line is handled concurrently and output is single-line JSON:
-
-```bash
-core/target/debug/daemon <<< '{"jsonrpc":"2.0","id":1,"method":"ping","params":{}}'
-```
+The `flutter test` suite verifies the local backend end-to-end
+(ping, system info, PATH, process.exec — all without any backend).
 
 ## Notes
 

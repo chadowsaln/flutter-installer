@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Flutter Installer
+GenericName=Flutter & Dart SDK Manager
+Comment=Download and manage Flutter and Dart SDKs
+Exec=flutter-installer
+Icon=flutter-installer
+Terminal=false
+Categories=Development;Utility;
+Keywords=flutter;dart;sdk;install;
+StartupWMClass=flutter_installer_ui
