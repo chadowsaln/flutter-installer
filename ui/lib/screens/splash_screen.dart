@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import '../app.dart';
 import 'shell.dart';
 import '../state/app_state.dart';
-import '../services/app_update_service.dart';
-import '../widgets/update_dialog.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -32,7 +30,6 @@ class _SplashScreenState extends State<SplashScreen>
   Timer? _minDisplayTimer;
   bool _animationComplete = false;
   bool _stateReady = false;
-  bool _updateChecked = false;
 
   @override
   void initState() {
@@ -131,25 +128,8 @@ class _SplashScreenState extends State<SplashScreen>
     }
   }
 
-  void _checkAndNavigate() async {
+  void _checkAndNavigate() {
     if (_animationComplete && _stateReady && _appState != null && mounted) {
-      if (!_updateChecked) {
-        _updateChecked = true;
-        try {
-          final release = await AppUpdateService.checkForUpdates();
-          if (release != null && AppUpdateService.hasUpdate(release) && mounted) {
-            if (!mounted) return;
-            await showDialog(
-              context: context,
-              barrierDismissible: true,
-              builder: (context) => UpdateDialog(release: release),
-            );
-          }
-        } catch (_) {}
-      }
-
-      if (!mounted) return;
-
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) =>
