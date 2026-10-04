@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'screens/splash_screen.dart';
 import 'state/app_state.dart';
-import 'screens/shell.dart';
 
 class FlutterInstallerApp extends StatelessWidget {
   const FlutterInstallerApp({super.key});
@@ -31,7 +31,7 @@ class FlutterInstallerApp extends StatelessWidget {
           isDense: true,
         ),
       ),
-      home: const Shell(),
+      home: const SplashScreen(),
     );
   }
 }

@@ -22,14 +22,16 @@ import 'system_screen.dart';
 ///   pages in an [IndexedStack]. Base the decision strictly on window space
 ///   via [LayoutBuilder] — never on orientation or hardware type.
 class Shell extends StatefulWidget {
-  const Shell({super.key});
+  const Shell({super.key, this.state});
+
+  final AppState? state;
 
   @override
   State<Shell> createState() => _ShellState();
 }
 
 class _ShellState extends State<Shell> {
-  late final AppState _state = AppState();
+  late final AppState _state = widget.state ?? AppState();
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   int _index = 0;
 
