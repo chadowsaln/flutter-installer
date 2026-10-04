@@ -5,6 +5,7 @@ import '../state/app_state.dart';
 import '../state/app_scope.dart';
 import '../widgets/adaptive_layout.dart';
 import 'dart_manager_screen.dart';
+import 'app_update_screen.dart';
 import 'flutter_manager_screen.dart';
 import 'install_wizard_screen.dart';
 import 'instant_setup_screen.dart';
@@ -12,6 +13,9 @@ import 'path_manager_screen.dart';
 import 'process_screen.dart';
 import 'sdk_manager_screen.dart';
 import 'system_screen.dart';
+
+/// فهرس قسم تحديث التطبيق داخل [Shell._pages] (آخر عنصر).
+const int updateSectionIndex = 8;
 
 /// Desktop shell: adapts to the available app window width.
 ///
@@ -22,9 +26,10 @@ import 'system_screen.dart';
 ///   pages in an [IndexedStack]. Base the decision strictly on window space
 ///   via [LayoutBuilder] — never on orientation or hardware type.
 class Shell extends StatefulWidget {
-  const Shell({super.key, this.state});
+  const Shell({super.key, this.state, this.initialIndex = 0});
 
   final AppState? state;
+  final int initialIndex;
 
   @override
   State<Shell> createState() => _ShellState();
@@ -35,6 +40,13 @@ class _ShellState extends State<Shell> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   int _index = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    final index = widget.initialIndex;
+    _index = index >= 0 && index < _pages.length ? index : 0;
+  }
+
   static const _pages = [
     InstantSetupScreen(),
     InstallWizardScreen(),
@@ -44,6 +56,7 @@ class _ShellState extends State<Shell> {
     PathManagerScreen(),
     ProcessScreen(),
     SystemScreen(),
+    AppUpdateScreen(),
   ];
 
   @override
@@ -176,6 +189,7 @@ const _icons = [
   Icons.route,
   Icons.memory,
   Icons.health_and_safety,
+  Icons.system_update_alt,
 ];
 
 const _labels = [
@@ -187,6 +201,7 @@ const _labels = [
   'PATH',
   'Processes',
   'System',
+  'Update',
 ];
 
 class _Rail extends StatelessWidget {

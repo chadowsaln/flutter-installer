@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../app.dart';
 import 'shell.dart';
+import '../services/app_update_service.dart';
 import '../state/app_state.dart';
+import '../widgets/update_dialog.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -30,6 +32,7 @@ class _SplashScreenState extends State<SplashScreen>
   Timer? _minDisplayTimer;
   bool _animationComplete = false;
   bool _stateReady = false;
+  bool _updateChecked = false;
 
   @override
   void initState() {
@@ -129,21 +132,39 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _checkAndNavigate() {
-    if (_animationComplete && _stateReady && _appState != null && mounted) {
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              Shell(state: _appState!),
-          transitionDuration: const Duration(milliseconds: 400),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: animation,
-              child: child,
-            );
-          },
-        ),
+    if (!_animationComplete || !_stateReady || _appState == null || !mounted) return;
+    if (_updateChecked) return;
+    _updateChecked = true;
+    _checkForAppUpdateThenNavigate();
+  }
+
+  Future<void> _checkForAppUpdateThenNavigate() async {
+    var initialIndex = 0;
+    final release = await AppUpdateService.checkForUpdates();
+    if (release != null && AppUpdateService.hasUpdate(release) && mounted) {
+      final openUpdater = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => UpdateDialog(release: release),
       );
+      if (openUpdater ?? false) {
+        initialIndex = updateSectionIndex;
+      }
     }
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            Shell(state: _appState, initialIndex: initialIndex),
+        transitionDuration: const Duration(milliseconds: 400),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(
+            opacity: animation,
+            child: child,
+          );
+        },
+      ),
+    );
   }
 
   @override
