@@ -45,7 +45,12 @@ flutter run -d linux
 
 ## الحزم والتنزيلات
 
-مُغلف لكل التوزيعات من أمر واحد — `./packaging/build-packages.sh`:
+مُغلف لكل التوزيعات من أمر واحد:
+
+```bash
+./packaging/build-packages.sh          # الناتج في dist/
+VERSION=0.2.0 ./packaging/build-packages.sh   # تحديد الإصدار يدوياً
+```
 
 | النظام | الحزمة | التثبيت |
 |--------|--------|---------|
@@ -53,6 +58,49 @@ flutter run -d linux
 | Debian / Ubuntu | `flutter-installer_*_amd64.deb` | `sudo apt install ./…` |
 | أي لينكس | `flutter-installer-x86_64.AppImage` | `chmod +x && ./…` |
 | Arch / AUR | `PKGBUILD` + `.SRCINFO` | `makepkg -si` |
+
+### ملفات البناء
+
+```
+packaging/
+├── build-packages.sh          ← البنّاء الموحّد: يبني كل ما يمكن على الجهاز
+├── PACKAGING.md               ← التوثيق الكامل
+├── common/
+│   ├── flutter-installer.desktop   ← ملف سطح المكتب
+│   ├── AppRun                      ← نقطة دخول الـ AppImage
+│   └── appimagetool.yml            ← خيارات appimagetool
+├── rpm/
+│   └── flutter-installer.spec      ← مواصفات RPM (تُبنى بـ rpmbuild)
+├── debian/
+│   ├── control                     ← بيانات الحزمة + التبعيات
+│   ├── postinst                    ← بعد التثبيت (تحديث القوائم)
+│   └── prerm                       ← قبل الحذف
+├── appimage/                       ← ملاحظات AppImage
+└── arch/
+    ├── PKGBUILD                    ← وصفة بناء Arch
+    └── .SRCINFO                    ← بيانات AUR
+```
+
+### البناء لكل نظام
+
+```bash
+# RPM — Fedora/RHEL (يتطلب rpmbuild)
+rpmbuild --define "_topdir ~/rpmbuild" -bb packaging/rpm/flutter-installer.spec
+
+# DEB — Debian/Ubuntu (dpkg-deb، أو ar+tar يدوياً إذا انقص)
+dpkg-deb --build --root-owner-group <مجلد> flutter-installer_0.1.0_amd64.deb
+
+# AppImage — أي لينكس (ينزّل appimagetool تلقائياً)
+appimagetool AppDir flutter-installer-x86_64.AppImage
+
+# Arch — على جهاز Arch (makepkg)
+makepkg -si
+```
+
+* الإصدار يُقرأ من `version:` في `ui/pubspec.yaml`.
+* الحزمة تبني من `flutter build linux --release` — نفس الـ bundle
+  يُغلَّف بالأربع صيغ.
+* التبعية الوحيدة للتثبيت: `gtk3` (`libgtk-3-0` على ديبيان).
 
 التفاصيل الكاملة في [packaging/PACKAGING.md](packaging/PACKAGING.md).
 
