@@ -5,7 +5,6 @@ import '../state/app_state.dart';
 import '../state/app_scope.dart';
 import '../widgets/adaptive_layout.dart';
 import 'dart_manager_screen.dart';
-import 'app_update_screen.dart';
 import 'flutter_manager_screen.dart';
 import 'install_wizard_screen.dart';
 import 'instant_setup_screen.dart';
@@ -13,9 +12,7 @@ import 'path_manager_screen.dart';
 import 'process_screen.dart';
 import 'sdk_manager_screen.dart';
 import 'system_screen.dart';
-
-/// فهرس قسم تحديث التطبيق داخل [Shell._pages] (آخر عنصر).
-const int updateSectionIndex = 8;
+import 'updates_screen.dart';
 
 /// Desktop shell: adapts to the available app window width.
 ///
@@ -26,10 +23,9 @@ const int updateSectionIndex = 8;
 ///   pages in an [IndexedStack]. Base the decision strictly on window space
 ///   via [LayoutBuilder] — never on orientation or hardware type.
 class Shell extends StatefulWidget {
-  const Shell({super.key, this.state, this.initialIndex = 0});
+  const Shell({super.key, this.state});
 
   final AppState? state;
-  final int initialIndex;
 
   @override
   State<Shell> createState() => _ShellState();
@@ -40,15 +36,9 @@ class _ShellState extends State<Shell> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   int _index = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    final index = widget.initialIndex;
-    _index = index >= 0 && index < _pages.length ? index : 0;
-  }
-
   static const _pages = [
     InstantSetupScreen(),
+    UpdatesScreen(),
     InstallWizardScreen(),
     SdkManagerScreen(),
     FlutterManagerScreen(),
@@ -56,7 +46,6 @@ class _ShellState extends State<Shell> {
     PathManagerScreen(),
     ProcessScreen(),
     SystemScreen(),
-    AppUpdateScreen(),
   ];
 
   @override
@@ -182,6 +171,7 @@ class _ShellState extends State<Shell> {
 
 const _icons = [
   Icons.bolt,
+  Icons.sync_alt,
   Icons.rocket_launch,
   Icons.inventory_2,
   Icons.flutter_dash,
@@ -189,11 +179,11 @@ const _icons = [
   Icons.route,
   Icons.memory,
   Icons.health_and_safety,
-  Icons.system_update_alt,
 ];
 
 const _labels = [
   'Instant Setup',
+  'Updates',
   'Installer',
   'SDK Manager',
   'Flutter',
@@ -201,7 +191,6 @@ const _labels = [
   'PATH',
   'Processes',
   'System',
-  'Update',
 ];
 
 class _Rail extends StatelessWidget {
@@ -247,7 +236,7 @@ class _Rail extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(12),
             child: Text(
-              'v0.1.0 · Rust core + Flutter UI',
+              'v0.1.0 · Dart-only + Flutter UI',
               style: Theme.of(context).textTheme.bodySmall,
               textAlign: TextAlign.center,
             ),
