@@ -5,6 +5,18 @@
 النظام مباشرة: كشف النظام عبر `Platform`، التنزيل عبر `HttpClient`، الفك عبر
 `tar`/`unzip`، والـ PATH عبر متغيرات البيئة (`export` في البروفايل أو `setx`).
 
+## التحميل
+
+| النظام | الملف |
+|---|---|
+| **Windows** | [flutter-installer-0.1.0-setup.exe](https://github.com/chadowsaln/flutter-installer/releases/download/v0.1.0/flutter-installer-0.1.0-setup.exe) — نقرة مزدوجة، تثبيت لكل مستخدم بدون صلاحيات مدير |
+| **كل الإصدارات** | [github.com/chadowsaln/flutter-installer/releases](https://github.com/chadowsaln/flutter-installer/releases) |
+
+> الملف غير موقّع رقمياً، لذلك قد يظهر تحذير Windows SmartScreen —
+> اختر **More info ← Run anyway**. التطبيق يحتاج
+> [Microsoft VC++ Runtime](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+> (موجود افتراضياً على أغلب الأجهزة).
+
 ```
 Flutter Installer (Dart فقط — بدون باك إند)
 └── Flutter Desktop UI          (ui/ — Flutter app: Linux / Windows / macOS)
@@ -68,6 +80,12 @@ VERSION=0.2.0 ./packaging/build-packages.sh   # تحديد الإصدار يدو
 .\packaging\windows\build-installer.ps1     # الناتج dist\flutter-installer-<ver>-setup.exe
 ```
 
+بديل غير رسمي لبناء نفس الـ `setup.exe` على لينكس (wine + clang-cl + xwin):
+
+```bash
+packaging/windows/cross-build-windows.sh    # الناتج dist/flutter-installer-<ver>-setup.exe
+```
+
 ### ملفات البناء
 
 ```
@@ -90,7 +108,8 @@ packaging/
 │   └── .SRCINFO                    ← بيانات AUR
 └── windows/
     ├── flutter-installer.iss       ← سكربت Inno Setup (مُثبّت setup.exe)
-    └── build-installer.ps1         ← بناء + تجميع على ويندوز
+    ├── build-installer.ps1         ← بناء + تجميع على ويندوز
+    └── cross-build-windows.sh      ← بناء متقاطع من لينكس (wine + clang-cl)
 ```
 
 ### البناء لكل نظام

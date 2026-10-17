@@ -101,6 +101,9 @@ packaging/
   `dist/flutter-installer-<ver>-setup.exe` (نقرة واحدة للتثبيت،
   تثبيت لكل مستخدم بدون صلاحيات مدير). التفاصيل في
   `packaging/windows/README.md`.
+  بديل غير رسمي: `packaging/windows/cross-build-windows.sh` يبني نفس
+  الـ `setup.exe` على لينكس (AOT عبر wine، الـ runner بـ clang-cl
+  وترويسات MSVC من `xwin`، والـ Inno تحت wine) — هشّ بطبيعته.
 * **macOS**: يعمل عبر `flutter build macos`، لكن لم يُصنع له
   مُثبّت (`.dmg`/`.pkg`) بعد.
 

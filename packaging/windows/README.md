@@ -41,6 +41,40 @@ adds Start Menu (and optional desktop) shortcuts, and offers to launch it.
 
 `build-installer.cmd` is a thin wrapper for double-click / plain `cmd`.
 
+## Building from Linux (cross-build, unofficial)
+
+Flutter officially refuses to build the Windows target on Linux, but the same
+`setup.exe` can still be produced locally — `cross-build-windows.sh` drives
+each piece by hand:
+
+```bash
+packaging/windows/cross-build-windows.sh
+# -> dist/flutter-installer-0.1.0-setup.exe
+```
+
+| Step | Tool | What happens |
+|------|------|--------------|
+| engine artifacts | `flutter precache --windows` | downloads `flutter_windows.dll`, `gen_snapshot.exe`, the C++ client wrapper |
+| Dart bundle + AOT | `flutter assemble` + **wine** | `gen_snapshot.exe` runs under wine (a generated shim rewrites unix paths); produces `flutter_assets` + `data/app.so` |
+| C++ runner | **clang-cl + lld-link** | compiles `windows/runner/*` + the client wrapper against MSVC STL / Windows SDK headers fetched by [`xwin`](https://github.com/Jake-Shadle/xwin), links `flutter_installer_ui.exe` |
+| installer | **Inno Setup under wine** | downloads Inno Setup once into the wine prefix and compiles the same `flutter-installer.iss` used on Windows/CI |
+
+Prerequisites (Linux): `flutter`, `wine`, `clang-cl`, `lld-link` (LLVM),
+`cargo` (for `xwin`). The script installs `xwin`'s SDK payload and Inno Setup
+itself on first run (into `$XWIN` and `$WINEPREFIX`, defaulting to
+`~/.cache/...`).
+
+Caveats:
+
+- Unofficial and fragile by nature: a Flutter upgrade can move any of these
+  pieces. The supported path stays Windows or GitHub Actions.
+- The produced installer was verified to install and put the app files in
+  place; the app itself needs the Microsoft VC++ runtime
+  (`MSVCP140.dll`/`VCRUNTIME140.dll`), like any Flutter Windows app.
+- Running the cross-built app under wine can crash inside wine's OpenGL
+  stack (Impeller); that is a wine limitation, not a property of the exe —
+  validate on real Windows.
+
 ## CI
 
 `.github/workflows/windows-release.yml` runs the same script on
@@ -53,8 +87,9 @@ installer → Run workflow**.
 ```
 packaging/windows/
 ├── flutter-installer.iss    ← Inno Setup script (UI, shortcuts, uninstaller)
-├── build-installer.ps1      ← build + compile driver
-└── build-installer.cmd      ← PowerShell wrapper for cmd/double-click
+├── build-installer.ps1      ← build + compile driver (Windows)
+├── build-installer.cmd      ← PowerShell wrapper for cmd/double-click
+└── cross-build-windows.sh   ← Linux cross-build (wine + clang-cl + xwin)
 ```
 
 Version comes from `version:` in `ui/pubspec.yaml`; change it there and rebuild.
