@@ -58,6 +58,15 @@ VERSION=0.2.0 ./packaging/build-packages.sh   # تحديد الإصدار يدو
 | Debian / Ubuntu | `flutter-installer_*_amd64.deb` | `sudo apt install ./…` |
 | أي لينكس | `flutter-installer-x86_64.AppImage` | `chmod +x && ./…` |
 | Arch / AUR | `PKGBUILD` + `.SRCINFO` | `makepkg -si` |
+| Windows | `flutter-installer-*-setup.exe` | انقر نقراً مزدوجاً |
+
+مُثبّت ويندوز (`setup.exe`) يُبنى على جهاز ويندوز (أو عبر GitHub Actions)
+لأن `flutter build windows` يحتاج MSVC — التفاصيل في
+[packaging/windows/README.md](packaging/windows/README.md):
+
+```powershell
+.\packaging\windows\build-installer.ps1     # الناتج dist\flutter-installer-<ver>-setup.exe
+```
 
 ### ملفات البناء
 
@@ -76,9 +85,12 @@ packaging/
 │   ├── postinst                    ← بعد التثبيت (تحديث القوائم)
 │   └── prerm                       ← قبل الحذف
 ├── appimage/                       ← ملاحظات AppImage
-└── arch/
-    ├── PKGBUILD                    ← وصفة بناء Arch
-    └── .SRCINFO                    ← بيانات AUR
+├── arch/
+│   ├── PKGBUILD                    ← وصفة بناء Arch
+│   └── .SRCINFO                    ← بيانات AUR
+└── windows/
+    ├── flutter-installer.iss       ← سكربت Inno Setup (مُثبّت setup.exe)
+    └── build-installer.ps1         ← بناء + تجميع على ويندوز
 ```
 
 ### البناء لكل نظام

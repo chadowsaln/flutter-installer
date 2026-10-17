@@ -1,0 +1,54 @@
+name: Windows installer
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Override version (default: ui/pubspec.yaml)'
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-setup:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Install dependencies
+        working-directory: ui
+        run: flutter pub get
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Build setup.exe
+        shell: pwsh
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+          ISCC: 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+        run: ./packaging/windows/build-installer.ps1
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-installer-setup
+          path: dist/flutter-installer-*-setup.exe
+          if-no-files-found: error
+
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/flutter-installer-*-setup.exe

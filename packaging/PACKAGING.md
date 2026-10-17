@@ -94,10 +94,15 @@ packaging/
   — `rpm -ivh --test` يثبت أن التبعيات تُحلّ ذاتياً.
 * **الرابط `/usr/bin/flutter-installer` نسبي** (`../../opt/...`)
   حتى يعمل مع `rpm` و`pacman` الذين يفضّلان الروابط النسبية.
-* **Windows / macOS**: التطبيق يعمل عليهما عبر `flutter build
-  windows` / `macos` (خدمات النظام تتفرع عبر `Platform` وتستخدم
-  `winget`/`setx` على ويندوز)، لكن لم يُصنع مُثبّت لهما بعد —
-  `flutter_distributor` أو `msix`/`inno` للويندوز و`dmg` للماك.
+* **Windows**: مُثبّت `setup.exe` يُبنى بـ Inno Setup من
+  `packaging/windows/` — يحتاج جهاز ويندوز (أو GitHub Actions) لأن
+  `flutter build windows` يتطلب MSVC. شغّل
+  `packaging/windows/build-installer.ps1` والناتج
+  `dist/flutter-installer-<ver>-setup.exe` (نقرة واحدة للتثبيت،
+  تثبيت لكل مستخدم بدون صلاحيات مدير). التفاصيل في
+  `packaging/windows/README.md`.
+* **macOS**: يعمل عبر `flutter build macos`، لكن لم يُصنع له
+  مُثبّت (`.dmg`/`.pkg`) بعد.
 
 ## خط أنابيب مقترح (CI)
 
