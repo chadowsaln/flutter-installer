@@ -13,9 +13,8 @@
 | **كل الإصدارات** | [github.com/chadowsaln/flutter-installer/releases](https://github.com/chadowsaln/flutter-installer/releases) |
 
 > الملف غير موقّع رقمياً، لذلك قد يظهر تحذير Windows SmartScreen —
-> اختر **More info ← Run anyway**. التطبيق يحتاج
-> [Microsoft VC++ Runtime](https://aka.ms/vs/17/release/vc_redist.x64.exe)
-> (موجود افتراضياً على أغلب الأجهزة).
+> اختر **More info ← Run anyway**. لا يحتاج أي متطلبات إضافية
+> (الـ CRT مربوط ساكن، مثل محرّك Flutter نفسه).
 
 ```
 Flutter Installer (Dart فقط — بدون باك إند)

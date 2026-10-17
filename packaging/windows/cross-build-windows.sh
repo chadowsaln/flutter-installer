@@ -133,7 +133,7 @@ SOURCES=(
 OBJS=()
 for src in "${SOURCES[@]}"; do
     obj="$OBJ/$(basename "${src%.*}").obj"
-    "$CLANG_CL" --target=x86_64-pc-windows-msvc /nologo /c /O2 /EHsc /std:c++17 /MD \
+    "$CLANG_CL" --target=x86_64-pc-windows-msvc /nologo /c /O2 /EHsc /std:c++17 /MT \
         /DUNICODE /D_UNICODE /DNOMINMAX /D_HAS_EXCEPTIONS=0 \
         "/DFLUTTER_VERSION=\"$VERSION\"" \
         /DFLUTTER_VERSION_MAJOR=0 /DFLUTTER_VERSION_MINOR=1 \
@@ -153,7 +153,10 @@ step "Linking flutter_installer_ui.exe"
     "$EPH/flutter_windows.dll.lib" \
     dwmapi.lib comctl32.lib user32.lib gdi32.lib shell32.lib ole32.lib \
     oleaut32.lib uuid.lib winmm.lib advapi32.lib \
-    msvcrt.lib msvcprt.lib vcruntime.lib ucrt.lib oldnames.lib
+    libcmt.lib libcpmt.lib libvcruntime.lib libucrt.lib oldnames.lib
+# Static CRT (/MT) on purpose: matches how flutter_windows.dll itself is
+# linked, and keeps the app free of any MSVCP140/VCRUNTIME140 (VC++
+# Redistributable) requirement on the target machine.
 
 # --------------------------------------------------- 4. Assemble the bundle --
 step "Assembling the release bundle"

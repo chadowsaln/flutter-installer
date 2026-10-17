@@ -69,8 +69,9 @@ Caveats:
 - Unofficial and fragile by nature: a Flutter upgrade can move any of these
   pieces. The supported path stays Windows or GitHub Actions.
 - The produced installer was verified to install and put the app files in
-  place; the app itself needs the Microsoft VC++ runtime
-  (`MSVCP140.dll`/`VCRUNTIME140.dll`), like any Flutter Windows app.
+  place. The runner links the CRT statically (`/MT`), matching
+  `flutter_windows.dll`, so the app has no Visual C++ Redistributable
+  dependency.
 - Running the cross-built app under wine can crash inside wine's OpenGL
   stack (Impeller); that is a wine limitation, not a property of the exe —
   validate on real Windows.

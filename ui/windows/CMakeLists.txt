@@ -10,6 +10,10 @@ set(BINARY_NAME "flutter_installer_ui")
 # versions of CMake.
 cmake_policy(VERSION 3.14...3.25)
 
+# Static CRT, like the prebuilt flutter_windows.dll: without it the app
+# needs the Visual C++ Redistributable (MSVCP140.dll) on the target machine.
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
 # Define build configuration option.
 get_property(IS_MULTICONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(IS_MULTICONFIG)
