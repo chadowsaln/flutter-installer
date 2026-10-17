@@ -41,13 +41,19 @@ $exe = Join-Path $Bundle 'flutter_installer_ui.exe'
 if (-not (Test-Path $exe)) { Die "release bundle missing $exe" }
 
 # --- verify the static CRT made it into the generated projects ----------------
-$vcxprojs = Get-ChildItem (Join-Path $Ui 'build\windows') -Recurse -Filter '*.vcxproj'
-$runtimes = $vcxprojs | ForEach-Object {
-    Select-String -Path $_.FullName -Pattern '<RuntimeLibrary[^>]*>([^<]+)</RuntimeLibrary>' -AllMatches |
-        ForEach-Object { $_.Matches } |
-        ForEach-Object { "$($_.Groups[1].Value)" }
-} | Sort-Object -Unique
-Write-Host "    MSVC runtime in generated projects: $($runtimes -join ', ')"
+Write-Host "    --- ui/windows/CMakeLists.txt ---"
+Select-String -Path (Join-Path $Ui 'windows\CMakeLists.txt') `
+    -Pattern 'CMAKE_MSVC_RUNTIME_LIBRARY|CMAKE_POLICY_DEFAULT_CMP0091|add_subdirectory' |
+    ForEach-Object { Write-Host "    $($_.LineNumber): $($_.Line.Trim())" }
+Write-Host "    --- CMakeCache MSVC_RUNTIME ---"
+Select-String -Path (Join-Path $Ui 'build\windows\x64\CMakeCache.txt') -Pattern 'MSVC_RUNTIME' |
+    ForEach-Object { Write-Host "    $($_.Line)" }
+Get-ChildItem (Join-Path $Ui 'build\windows') -Recurse -Filter '*.vcxproj' | ForEach-Object {
+    $c = Get-Content $_.FullName -Raw
+    $rs = ([regex]::Matches($c, '<RuntimeLibrary[^>]*>([^<]+)<')) |
+        ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique
+    Write-Host "    $($_.Name) -> [$($rs -join ', ')]"
+}
 
 # --- locate Inno Setup compiler (ISCC.exe) ------------------------------------
 function Find-Iscc {
