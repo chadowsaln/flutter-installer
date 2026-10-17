@@ -10,6 +10,7 @@ import '../services/installer_service.dart';
 import '../services/system_service.dart';
 import '../state/app_scope.dart';
 import '../widgets/adaptive_layout.dart';
+import '../widgets/stage_track.dart';
 
 /// شاشة "الإعداد الفوري": زر واحد يكتشف النظام، ينزّل، يفكّ، يضبط PATH،
 /// يهيّئ الأدوات، ويتحقق فعلياً بتشغيل `flutter --version`.
@@ -282,12 +283,12 @@ class _InstantSetupScreenState extends State<InstantSetupScreen> {
           const SizedBox(height: 16),
         ],
 
-        _StageTrack(stage: _progress.stage, steps: _activeSteps),
+        StageTrack(stage: _progress.stage, steps: _activeSteps),
         const SizedBox(height: 16),
 
         if (_running || _progress.stage == SetupStage.done ||
             _progress.stage == SetupStage.failed) ...[
-          _LiveProgressCard(
+          LiveProgressCard(
             progress: _progress,
             onCopy: _copy,
           ),
@@ -318,6 +319,168 @@ class _InstantSetupScreenState extends State<InstantSetupScreen> {
           detection: _detection,
           gitAvailable: _git != null,
           onPress: _install,
+        ),
+      ],
+    );
+  }
+}
+
+// --------------------------------------------------------------- options ---
+
+class _OptionsCard extends StatelessWidget {
+  const _OptionsCard({
+    required this.channel,
+    required this.dir,
+    required this.addToPath,
+    required this.precache,
+    required this.enabled,
+    required this.onChannel,
+    required this.onDir,
+    required this.onAddToPath,
+    required this.onPrecache,
+  });
+
+  final String channel;
+  final TextEditingController dir;
+  final bool addToPath;
+  final bool precache;
+  final bool enabled;
+  final ValueChanged<String> onChannel;
+  final ValueChanged<String> onDir;
+  final ValueChanged<bool> onAddToPath;
+  final ValueChanged<bool> onPrecache;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF16233A),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final channelField = DropdownButtonFormField<String>(
+            initialValue: channel,
+            decoration: const InputDecoration(labelText: 'Release channel'),
+            items: const [
+              DropdownMenuItem(value: 'stable', child: Text('stable')),
+              DropdownMenuItem(value: 'beta', child: Text('beta')),
+              DropdownMenuItem(value: 'dev', child: Text('dev')),
+            ],
+            onChanged: enabled
+                ? (v) {
+                    if (v != null) onChannel(v);
+                  }
+                : null,
+          );
+          final dirField = TextField(
+            controller: dir,
+            enabled: enabled,
+            decoration: const InputDecoration(
+              labelText: 'Install to',
+              helperText: 'The SDK will be placed in <dir>/flutter',
+            ),
+            onChanged: onDir,
+          );
+          if (constraints.maxWidth < 520) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                channelField,
+                const SizedBox(height: 12),
+                dirField,
+              ],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: channelField),
+              const SizedBox(width: 12),
+              Expanded(flex: 2, child: dirField),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ------------------------------------------------------------- go button ---
+
+class _GoButton extends StatelessWidget {
+  const _GoButton({
+    required this.running,
+    required this.done,
+    required this.blocked,
+    required this.detection,
+    required this.gitAvailable,
+    required this.onPress,
+  });
+
+  final bool running;
+  final bool done;
+  final bool blocked;
+  final InstallDetection detection;
+  final bool gitAvailable;
+  final VoidCallback onPress;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = detection;
+    // الزر يعكس الحالة الحقيقية: تثبيت / تثبيت كامل / لا إجراء.
+    final (IconData icon, String label) = switch (d.state) {
+      InstallState.notInstalled => (Icons.bolt, 'Install Flutter now'),
+      InstallState.outdated => (Icons.download, 'Reinstall from archive'),
+      InstallState.upToDate => (Icons.check_circle, 'Already installed'),
+      InstallState.newer => (
+          Icons.download,
+          'Reinstall from archive'
+        ),
+    };
+    final upToDate = d.state == InstallState.upToDate;
+    final target = d.targetVersion;
+    final subtitle = upToDate
+        ? 'Flutter ${d.installedVersion} is already installed at '
+            '${d.flutterPath}'
+        : gitAvailable && d.state == InstallState.outdated
+            // لا نريد أن يُقرأ الزر الرئيسي كخيار الرخيص.
+            ? 'The full archive (${target ?? '?'}) is a reinstall: it deletes '
+                'and re-extracts. Prefer "Update in place" above.'
+            : 'Runs only system commands: tar / unzip / export / '
+                'flutter precache.';
+
+    return Column(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: FilledButton.icon(
+            // "Up to date" لا ينفّذ تنزيلاً بلا داعٍ.
+            onPressed: (running || blocked || upToDate) ? null : onPress,
+            icon: running
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : Icon(done ? Icons.refresh : icon),
+            label: Text(
+              running
+                  ? 'Installing — do not close'
+                  : blocked
+                      ? 'Install missing tools first'
+                      : done
+                          ? 'Run again'
+                          : label,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          subtitle,
+          style: Theme.of(context).textTheme.bodySmall,
+          textAlign: TextAlign.center,
         ),
       ],
     );
@@ -887,386 +1050,3 @@ class _MissingToolsCard extends StatelessWidget {
   }
 }
 
-// ------------------------------------------------------------ stage track --
-
-class _StageTrack extends StatelessWidget {
-  const _StageTrack({required this.stage, required this.steps});
-
-  final SetupStage stage;
-
-  /// مسار المراحل المعروض — تثبيت جديد أو تحديث داخلي.
-  final List<SetupStage> steps;
-
-  @override
-  Widget build(BuildContext context) {
-    final currentIndex = stage == SetupStage.failed ? 0 : steps.indexOf(stage);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            for (var i = 0; i < steps.length; i++)
-              _StepPill(
-                index: i + 1,
-                label: steps[i].label,
-                state: currentIndex < 0
-                    ? _StepState.pending
-                    : i < currentIndex
-                        ? _StepState.done
-                        : i == currentIndex
-                            ? (stage == SetupStage.done
-                                ? _StepState.done
-                                : _StepState.active)
-                            : _StepState.pending,
-              ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-enum _StepState { done, active, pending }
-
-class _StepPill extends StatelessWidget {
-  const _StepPill({
-    required this.index,
-    required this.label,
-    required this.state,
-  });
-
-  final int index;
-  final String label;
-  final _StepState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = switch (state) {
-      _StepState.done => const Color(0xFF2BD576),
-      _StepState.active => const Color(0xFF45D1FD),
-      _StepState.pending => const Color(0xFF3A4A66),
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.6)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (state == _StepState.active)
-            SizedBox(
-              width: 11,
-              height: 11,
-              child: CircularProgressIndicator(strokeWidth: 2, color: color),
-            )
-          else
-            Icon(
-              state == _StepState.done ? Icons.check : Icons.circle,
-              size: 11,
-              color: color,
-            ),
-          const SizedBox(width: 7),
-          Text('$index · $label',
-              style: TextStyle(
-                  fontSize: 11.5, color: color, fontWeight: FontWeight.w600)),
-        ],
-      ),
-    );
-  }
-}
-
-// ----------------------------------------------------------- live progress --
-
-class _LiveProgressCard extends StatelessWidget {
-  const _LiveProgressCard({required this.progress, required this.onCopy});
-
-  final SetupProgress progress;
-  final ValueChanged<String> onCopy;
-
-  @override
-  Widget build(BuildContext context) {
-    final failed = progress.stage == SetupStage.failed;
-    final done = progress.stage == SetupStage.done;
-    final color = failed
-        ? const Color(0xFFE5533D)
-        : done
-            ? const Color(0xFF2BD576)
-            : const Color(0xFF45D1FD);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF16233A),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                failed
-                    ? Icons.error_outline
-                    : done
-                        ? Icons.check_circle
-                        : Icons.bolt,
-                size: 18,
-                color: color,
-              ),
-              const SizedBox(width: 8),
-              Text(progress.stage.label,
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, color: color, fontSize: 14)),
-              const Spacer(),
-              if (progress.stage == SetupStage.download) ...[
-                Text('${progress.speedLabel} · ETA ${progress.eta}',
-                    style: const TextStyle(
-                        fontSize: 12, color: Color(0xFF45D1FD))),
-              ],
-            ],
-          ),
-          if (progress.stage == SetupStage.download) ...[
-            const SizedBox(height: 10),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: progress.percent / 100,
-                minHeight: 8,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              '${progress.doneLabel} / ${progress.totalLabel} '
-              '(${progress.percent.toStringAsFixed(1)}%)',
-              style: const TextStyle(fontSize: 11.5, color: Colors.white54),
-            ),
-          ],
-          if (progress.error != null) ...[
-            const SizedBox(height: 10),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFF05080F),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(progress.error!,
-                  style: const TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 12,
-                      color: Color(0xFFFF8A75))),
-            ),
-          ],
-          if (progress.log.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Container(
-              height: 190,
-              decoration: BoxDecoration(
-                color: const Color(0xFF05080F),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFF23314D)),
-              ),
-              child: ListView.builder(
-                padding: const EdgeInsets.all(10),
-                itemCount: progress.log.length,
-                itemBuilder: (context, i) {
-                  final line = progress.log[i];
-                  final isErr = line.startsWith('!');
-                  return Text(
-                    line,
-                    style: TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 11.5,
-                      height: 1.45,
-                      color: isErr
-                          ? const Color(0xFFE5533D)
-                          : line.startsWith(r'$')
-                              ? const Color(0xFF45D1FD)
-                              : Colors.white70,
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 6),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: () => onCopy(progress.log.join('\n')),
-                icon: const Icon(Icons.copy, size: 14),
-                label: const Text('Copy log'),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-// --------------------------------------------------------------- options ---
-
-class _OptionsCard extends StatelessWidget {
-  const _OptionsCard({
-    required this.channel,
-    required this.dir,
-    required this.addToPath,
-    required this.precache,
-    required this.enabled,
-    required this.onChannel,
-    required this.onDir,
-    required this.onAddToPath,
-    required this.onPrecache,
-  });
-
-  final String channel;
-  final TextEditingController dir;
-  final bool addToPath;
-  final bool precache;
-  final bool enabled;
-  final ValueChanged<String> onChannel;
-  final ValueChanged<String> onDir;
-  final ValueChanged<bool> onAddToPath;
-  final ValueChanged<bool> onPrecache;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF16233A),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final channelField = DropdownButtonFormField<String>(
-            initialValue: channel,
-            decoration: const InputDecoration(labelText: 'Release channel'),
-            items: const [
-              DropdownMenuItem(value: 'stable', child: Text('stable')),
-              DropdownMenuItem(value: 'beta', child: Text('beta')),
-              DropdownMenuItem(value: 'dev', child: Text('dev')),
-            ],
-            onChanged: enabled
-                ? (v) {
-                    if (v != null) onChannel(v);
-                  }
-                : null,
-          );
-          final dirField = TextField(
-            controller: dir,
-            enabled: enabled,
-            decoration: const InputDecoration(
-              labelText: 'Install to',
-              helperText: 'The SDK will be placed in <dir>/flutter',
-            ),
-            onChanged: onDir,
-          );
-          if (constraints.maxWidth < 520) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                channelField,
-                const SizedBox(height: 12),
-                dirField,
-              ],
-            );
-          }
-          return Row(
-            children: [
-              Expanded(child: channelField),
-              const SizedBox(width: 12),
-              Expanded(flex: 2, child: dirField),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-// ------------------------------------------------------------- go button ---
-
-class _GoButton extends StatelessWidget {
-  const _GoButton({
-    required this.running,
-    required this.done,
-    required this.blocked,
-    required this.detection,
-    required this.gitAvailable,
-    required this.onPress,
-  });
-
-  final bool running;
-  final bool done;
-  final bool blocked;
-  final InstallDetection detection;
-  final bool gitAvailable;
-  final VoidCallback onPress;
-
-  @override
-  Widget build(BuildContext context) {
-    final d = detection;
-    // الزر يعكس الحالة الحقيقية: تثبيت / تثبيت كامل / لا إجراء.
-    final (IconData icon, String label) = switch (d.state) {
-      InstallState.notInstalled => (Icons.bolt, 'Install Flutter now'),
-      InstallState.outdated => (Icons.download, 'Reinstall from archive'),
-      InstallState.upToDate => (Icons.check_circle, 'Already installed'),
-      InstallState.newer => (
-          Icons.download,
-          'Reinstall from archive'
-        ),
-    };
-    final upToDate = d.state == InstallState.upToDate;
-    final target = d.targetVersion;
-    final subtitle = upToDate
-        ? 'Flutter ${d.installedVersion} is already installed at '
-            '${d.flutterPath}'
-        : gitAvailable && d.state == InstallState.outdated
-            // لا نريد أن يُقرأ الزر الرئيسي كخيار الرخيص.
-            ? 'The full archive (${target ?? '?'}) is a reinstall: it deletes '
-                'and re-extracts. Prefer "Update in place" above.'
-            : 'Runs only system commands: tar / unzip / export / '
-                'flutter precache.';
-
-    return Column(
-      children: [
-        SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: FilledButton.icon(
-            // "Up to date" لا ينفّذ تنزيلاً بلا داعٍ.
-            onPressed: (running || blocked || upToDate) ? null : onPress,
-            icon: running
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2))
-                : Icon(done ? Icons.refresh : icon),
-            label: Text(
-              running
-                  ? 'Installing — do not close'
-                  : blocked
-                      ? 'Install missing tools first'
-                      : done
-                          ? 'Run again'
-                          : label,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          subtitle,
-          style: Theme.of(context).textTheme.bodySmall,
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
-}

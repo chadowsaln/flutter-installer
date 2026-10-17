@@ -334,24 +334,5 @@ class InstallationDetector {
         .any((e) => e.replaceAll('/', Platform.pathSeparator) == norm);
   }
 
-  /// المسار التنفيذي لـ flutter داخل جذر SDK (`bin/flutter` أو `bin/flutter.bat`).
-  static String _flutterRoot(String root) =>
-      '${_binOf(root)}${Platform.pathSeparator}${_flutterExe()}';
-
-  /// يشغّل `flutter --version` للتأكد الفعلي — أبطأ، يُستدعى عند الطلب فقط.
-  static Future<String?> liveVersion(String root) async {
-    try {
-      final r = await Process.run(
-        _flutterRoot(root),
-        ['--version', '--machine'],
-      );
-      final out = '${r.stdout}${r.stderr}'.trim();
-      if (out.isEmpty) return null;
-      final match = RegExp(r'"frameworkVersion"\s*:\s*"([^"]+)"').firstMatch(out);
-      return match?.group(1) ?? out.split('\n').first;
-    } catch (_) {
-      return null;
-    }
-  }
 }
 

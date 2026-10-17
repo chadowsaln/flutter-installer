@@ -44,31 +44,6 @@ class AdaptiveLayout extends StatelessWidget {
   }
 }
 
-/// Prevents content from stretching unnaturally on large screens.
-///
-/// Wraps [child] in a [Center] + [ConstrainedBox] with
-/// `BoxConstraints(maxWidth: [maxWidth])`, per the large-screen workflow.
-class ConstrainedContent extends StatelessWidget {
-  const ConstrainedContent({
-    super.key,
-    required this.child,
-    this.maxWidth = contentMaxWidth,
-  });
-
-  final Widget child;
-  final double maxWidth;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: maxWidth),
-        child: child,
-      ),
-    );
-  }
-}
-
 /// A scrollable screen body that stays centered and width-constrained on
 /// large screens while filling small screens edge-to-edge.
 ///

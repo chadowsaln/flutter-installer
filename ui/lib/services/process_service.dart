@@ -6,11 +6,6 @@ import 'dart:io';
 /// Process management with no backend: `Process.start` / `Process.run`.
 class ProcessService {
   final _procs = <int, _Managed>{};
-  final _stdoutController = StreamController<Map<String, dynamic>>.broadcast();
-  final _exitController = StreamController<Map<String, dynamic>>.broadcast();
-
-  Stream<Map<String, dynamic>> get stdoutEvents => _stdoutController.stream;
-  Stream<Map<String, dynamic>> get exitEvents => _exitController.stream;
 
   /// مثل `process.spawn` — يشغّل أمراً ويبثّ مخرجاته.
   Future<Map<String, dynamic>> spawn(
@@ -27,22 +22,13 @@ class ProcessService {
     onLog('\$ $cmd ${args.join(' ')} (pid ${proc.pid})');
 
     proc.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen(
-      (line) {
-        final msg = {'pid': proc.pid, 'data': line};
-        _stdoutController.add({'type': 'stdout', ...msg});
-        onLog('[${proc.pid}] $line');
-      },
+      (line) => onLog('[${proc.pid}] $line'),
     );
     proc.stderr.transform(utf8.decoder).transform(const LineSplitter()).listen(
-      (line) {
-        final msg = {'pid': proc.pid, 'data': line};
-        _stdoutController.add({'type': 'stderr', ...msg});
-        onLog('[${proc.pid}] ! $line');
-      },
+      (line) => onLog('[${proc.pid}] ! $line'),
     );
     unawaited(proc.exitCode.then((code) {
       _procs.remove(proc.pid);
-      _exitController.add({'pid': proc.pid, 'code': code});
       onLog('process ${proc.pid} exited (code $code)');
     }));
 
@@ -86,10 +72,7 @@ class ProcessService {
     };
   }
 
-  void dispose() {
-    _stdoutController.close();
-    _exitController.close();
-  }
+  void dispose() {}
 }
 
 class _Managed {

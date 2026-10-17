@@ -23,22 +23,6 @@ class Downloader {
     }
   }
 
-  static Future<String> fetchText(String url) async {
-    final client = HttpClient();
-    try {
-      final req = await client
-          .getUrl(Uri.parse(url))
-          .timeout(const Duration(seconds: 12));
-      final resp = await req.close().timeout(const Duration(seconds: 12));
-      if (resp.statusCode != 200) {
-        throw HttpException('GET $url -> ${resp.statusCode}');
-      }
-      return await resp.transform(utf8.decoder).join();
-    } finally {
-      client.close(force: true);
-    }
-  }
-
   /// HEAD سريع لمعرفة حجم الملف (يفشل بصمت مثل الـ Rust).
   static Future<int?> headSize(String url) async {
     final client = HttpClient();

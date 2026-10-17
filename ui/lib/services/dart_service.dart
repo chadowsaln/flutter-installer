@@ -178,7 +178,3 @@ class DartService {
     return {'path': root, 'removed': true};
   }
 }
-
-extension<T> on Iterable<T> {
-  T? get firstOrNull => isEmpty ? null : first;
-}
