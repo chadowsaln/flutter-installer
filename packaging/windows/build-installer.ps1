@@ -40,6 +40,15 @@ try { & flutter build windows --release } finally { Pop-Location }
 $exe = Join-Path $Bundle 'flutter_installer_ui.exe'
 if (-not (Test-Path $exe)) { Die "release bundle missing $exe" }
 
+# --- verify the static CRT made it into the generated projects ----------------
+$vcxprojs = Get-ChildItem (Join-Path $Ui 'build\windows') -Recurse -Filter '*.vcxproj'
+$runtimes = $vcxprojs | ForEach-Object {
+    Select-String -Path $_.FullName -Pattern '<RuntimeLibrary[^>]*>([^<]+)</RuntimeLibrary>' -AllMatches |
+        ForEach-Object { $_.Matches } |
+        ForEach-Object { "$($_.Groups[1].Value)" }
+} | Sort-Object -Unique
+Write-Host "    MSVC runtime in generated projects: $($runtimes -join ', ')"
+
 # --- locate Inno Setup compiler (ISCC.exe) ------------------------------------
 function Find-Iscc {
     if ($env:ISCC -and (Test-Path $env:ISCC)) { return $env:ISCC }
