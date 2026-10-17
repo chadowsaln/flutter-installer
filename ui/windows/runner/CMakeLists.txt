@@ -1,4 +1,10 @@
 cmake_minimum_required(VERSION 3.14)
+
+# cmake_minimum_required(3.14) above would leave CMP0091 OLD here, which
+# silently ignores CMAKE_MSVC_RUNTIME_LIBRARY and keeps /MD.
+if(POLICY CMP0091)
+  cmake_policy(SET CMP0091 NEW)
+endif()
 project(runner LANGUAGES CXX)
 
 # Define the application target. To change its name, change BINARY_NAME in the

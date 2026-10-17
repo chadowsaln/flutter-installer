@@ -12,6 +12,9 @@ cmake_policy(VERSION 3.14...3.25)
 
 # Static CRT, like the prebuilt flutter_windows.dll: without it the app
 # needs the Visual C++ Redistributable (MSVCP140.dll) on the target machine.
+# The policy default matters for subprojects that pin an older policy
+# version (e.g. runner/CMakeLists.txt).
+set(CMAKE_POLICY_DEFAULT_CMP0091 NEW)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 # Define build configuration option.
