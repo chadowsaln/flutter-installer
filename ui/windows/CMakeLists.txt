@@ -1,14 +1,16 @@
 # Project-level configuration.
 cmake_minimum_required(VERSION 3.14)
+
+# Explicitly opt in to modern CMake behaviors to avoid warnings with recent
+# versions of CMake. Must come before project(): project() initializes the
+# per-config flags (including the MSVC runtime library flag) in this scope.
+cmake_policy(VERSION 3.14...3.25)
+
 project(flutter_installer_ui LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
 set(BINARY_NAME "flutter_installer_ui")
-
-# Explicitly opt in to modern CMake behaviors to avoid warnings with recent
-# versions of CMake.
-cmake_policy(VERSION 3.14...3.25)
 
 # Static CRT, like the prebuilt flutter_windows.dll: without it the app
 # needs the Visual C++ Redistributable (MSVCP140.dll) on the target machine.
